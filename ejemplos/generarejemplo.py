@@ -28,14 +28,14 @@ def check_overlap(existing_positions, new_position, jeroglifico):
             # Verificar superposición de píxeles de primer plano
             for x in range(jeroglifico.shape[1]):
                 for y in range(jeroglifico.shape[0]):
-                    if jeroglifico[y, x] == 1:  # Solo considerar píxeles de primer plano
+                    if jeroglifico[y, x] == 0:  # Solo considerar píxeles de primer plano
                         if example_image[new_position[1] + y, new_position[0] + x] == 0:
                             return True
     return False
 
 # Función para extraer solo los píxeles de primer plano
 def extract_foreground(jeroglifico):
-    foreground_pixels = np.argwhere(jeroglifico == 1)
+    foreground_pixels = np.argwhere(jeroglifico == 0)
     return foreground_pixels
 
 for i in range(start_index, start_index + num_examples):
@@ -53,14 +53,13 @@ for i in range(start_index, start_index + num_examples):
         
         # Cargar el jeroglífico binarizado
         jeroglifico = cv2.imread(jeroglifico_path, cv2.IMREAD_GRAYSCALE)
-        jeroglifico = jeroglifico // 255  # Convertir a 0 y 1
 
         # Redimensionar el jeroglífico a un tamaño más pequeño y rotarlo
         scale_factor = random.uniform(0.5, 1.5)
         jeroglifico = cv2.resize(jeroglifico, (int(jeroglifico.shape[1] * scale_factor), int(jeroglifico.shape[0] * scale_factor)), interpolation=cv2.INTER_NEAREST)
         angle = random.uniform(0, 360)
         M = cv2.getRotationMatrix2D((jeroglifico.shape[1]//2, jeroglifico.shape[0]//2), angle, 1)
-        jeroglifico = cv2.warpAffine(jeroglifico, M, (jeroglifico.shape[1], jeroglifico.shape[0]), borderValue=(1))
+        jeroglifico = cv2.warpAffine(jeroglifico, M, (jeroglifico.shape[1], jeroglifico.shape[0]), borderValue=(255))
 
         # Extraer píxeles de primer plano
         foreground_pixels = extract_foreground(jeroglifico)
@@ -69,16 +68,17 @@ for i in range(start_index, start_index + num_examples):
         if jeroglifico.shape[0] > example_size[0] or jeroglifico.shape[1] > example_size[1]:
             continue  # Saltar este jeroglífico si es demasiado grande
 
-        # Elegir una posición aleatoria para pegar el jeroglífico sin superposición
+        # Elegir una posición aleatoria para pegar el jeroglífico sin superposición y sin estar pegado a los bordes
         placed = False
         attempts = 0
         while not placed and attempts < 10:  # Limitar el número de intentos para evitar bucles infinitos
-            x_offset = random.randint(0, example_size[1] - jeroglifico.shape[1])
-            y_offset = random.randint(0, example_size[0] - jeroglifico.shape[0])
+            x_offset = random.randint(10, example_size[1] - jeroglifico.shape[1] - 10)
+            y_offset = random.randint(10, example_size[0] - jeroglifico.shape[0] - 10)
             if not check_overlap(existing_positions, (x_offset, y_offset, jeroglifico.shape[1], jeroglifico.shape[0]), jeroglifico):
                 # Pegar el jeroglífico en la imagen de ejemplo sin cambiar el fondo blanco
                 for pixel in foreground_pixels:
-                    example_image[y_offset + pixel[0], x_offset + pixel[1]] = 0
+                    if 0 <= y_offset + pixel[0] < example_size[0] and 0 <= x_offset + pixel[1] < example_size[1]:
+                        example_image[y_offset + pixel[0], x_offset + pixel[1]] = 0
                 existing_positions.append((x_offset, y_offset, jeroglifico.shape[1], jeroglifico.shape[0]))
                 placed = True
             attempts += 1
