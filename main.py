@@ -25,7 +25,7 @@ if __name__ == "__main__":
     referencias = cargar_jeroglificos_referencia()
     mostrar_jeroglificos_referencia(referencias)
     
-    ejemplos = ["ejemplos/Ejemplo1.png", "ejemplos/Ejemplo2.png"]
+    ejemplos = ["ejemplos/Ejemplo4.png", "ejemplos/Ejemplo1.png"]
     for ejemplo in ejemplos:
         try:
             resultado, num_componentes = principal(ejemplo, referencias)
